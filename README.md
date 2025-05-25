@@ -44,14 +44,14 @@ For detailed information and usage examples, see the [Documentation](docs/README
 
 1. Install dependencies:
     ```sh
-    go mod tidy
+    docker pull x0rx3/mockium
     ```
 
 3. Add folder with templates.
 
 3. Build and run the service:
     ```sh
-    go run cmd/app.go  --dir /path/to/templates/folder --address :8080
+    docker run -v ./templates:/templates -p 8080:5000 x0rx3/mockium:latest -template /templates
     ```
 
 
