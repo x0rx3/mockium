@@ -11,8 +11,8 @@ import (
 )
 
 func main() {
-	templateDir := flag.String("dir", "templtes", "location directory with template file, default './templates'")
-	address := flag.String("addr", "127.0.0.1:5000", "address with port, default '127.0.0.1:5000'")
+	templateDir := flag.String("template", "templtes", "location directory with template file, default './templates'")
+	address := flag.String("address", "127.0.0.1:5000", "address with port, default '127.0.0.1:5000'")
 	flag.Parse()
 
 	log := logging.New("debug")
