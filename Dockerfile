@@ -7,15 +7,15 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -o mockium ./cmd/app.go
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o mockium ./cmd/app.go
 
 FROM alpine:3.21
 
 WORKDIR /app
 
 COPY --from=builder /app/mockium /app/mockium
-COPY templates /app/templates
 
 EXPOSE 5000
 
-CMD ["/app/mockium", "-address", "127.0.0.1:5000", "-template", "/app/templates"]
+ENTRYPOINT ["/app/mockium"]
+CMD ["-template", "templates"]
