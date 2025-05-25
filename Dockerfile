@@ -7,15 +7,15 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -o gomock ./cmd/gomock.go
+RUN go build -o mockium ./cmd/app.go
 
 FROM alpine:3.21
 
 WORKDIR /app
 
-COPY --from=builder /app/gomock /app/gomock
-COPY templates/ /app/templates/
+COPY --from=builder /app/mockium /app/mockium
+COPY templates /app/templates
 
-EXPOSE 8080
+EXPOSE 5000
 
-ENTRYPOINT ["/app/gomock"]
+CMD ["/app/mockium", "-address", "127.0.0.1:5000", "-template", "/app/templates"]
