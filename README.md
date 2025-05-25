@@ -42,14 +42,14 @@ For detailed information and usage examples, see the [Documentation](docs/README
 
 ## Quick Start
 
-1. Install dependencies:
+1. Pull image:
     ```sh
     docker pull x0rx3/mockium
     ```
 
 3. Add folder with templates.
 
-3. Build and run the service:
+3. Run service with docker:
     ```sh
     docker run -v ./templates:/templates -p 8080:5000 x0rx3/mockium:latest -template /templates
     ```

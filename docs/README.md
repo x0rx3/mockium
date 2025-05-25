@@ -11,25 +11,6 @@
   - `transport/` — HTTP server, handlers, and interfaces
 - `vendor/` — external dependencies
 
-## Quick Start
-
-1. Install dependencies:
-    ```sh
-    go mod tidy
-    ```
-
-3. Add folder with templates.
-
-3. Build and run the service:
-    ```sh
-    go run cmd/gomock.go  --dir /path/to/templates/folder --address :8080
-    ```
-
-
-## Usage Example
-
-Once running, the service listens for HTTP requests, matches them to templates, and returns the corresponding responses.
-
 ## Testing
 
 To run unit tests, use:
@@ -37,6 +18,11 @@ To run unit tests, use:
 go test ./...
 ```
 Tests check the core functions of the service and its stability.
+
+
+## Usage Example
+
+Once running, the service listens for HTTP requests, matches them to templates, and returns the corresponding responses.
 
 ## Syntax 
 
