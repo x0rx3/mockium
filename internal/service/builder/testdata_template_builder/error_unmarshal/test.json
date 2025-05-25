@@ -1,0 +1,41 @@
+{
+    "Path": "/users",
+    "Handle": [
+        {
+            "MatchRequest": {
+                "MustMethod": "ERROR",
+                "MustQueryParameters": {
+                    "sort": "name "
+                },
+                "MustHeaders": {
+                    "Host": "127.0.0.1"
+                }
+            },
+            "SetResponse": {
+                "SetStatus": 200,
+                "SetBody": {
+                    "user_uuid": "${req.queryParams:user_uuid}",
+                    "username": "x0rx3"
+                }
+            }
+        },
+        {
+            "MatchRequest": {
+                "MustMethod": "GET",
+                "MustQueryParameters": {
+                    "sort": "name "
+                },
+                "MustHeaders": {
+                    "Host": "127.0.0.1"
+                }
+            },
+            "SetResponse": {
+                "SetStatus": 200,
+                "SetBody": {
+                    "user_uuid": "${req.queryParams:user_uuid}",
+                    "username": "x0rx3"
+                }
+            }
+        }
+    ]
+}
