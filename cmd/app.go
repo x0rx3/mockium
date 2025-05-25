@@ -11,15 +11,15 @@ import (
 )
 
 func main() {
-	templateDir := flag.String("template", "templtes", "location directory with template file, default './templates'")
-	address := flag.String("address", "127.0.0.1:5000", "address with port, default '127.0.0.1:5000'")
+	templateDir := flag.String("template", "templates", "location directory with template file, default './templates'")
+	address := flag.String("address", ":5000", "address with port, default ':5000'")
 	flag.Parse()
 
 	log := logging.New("debug")
 
 	templates, err := builder.NewTemplateBuilder(log).Build(*templateDir)
 	if err != nil {
-		log.Error("error build template", zap.Error(err))
+		log.Error("build template", zap.Error(err))
 		return
 	}
 
@@ -29,7 +29,7 @@ func main() {
 	}
 
 	if err := server.New(log, r...).Start(*address); err != nil {
-		log.Error("error start server", zap.Error(err))
+		log.Error("start server", zap.Error(err))
 		return
 	}
 }
