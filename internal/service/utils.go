@@ -49,8 +49,8 @@ type Parameter string
 // The following constants represent the different types of placeholders that can be used.
 const (
 	Headers Parameter = "headers"
-	Query   Parameter = "queryParams"
-	Path    Parameter = "pathParams"
-	Form    Parameter = "formParams"
+	Query   Parameter = "query"
+	Path    Parameter = "path"
+	Form    Parameter = "form"
 	Body    Parameter = "body"
 )
