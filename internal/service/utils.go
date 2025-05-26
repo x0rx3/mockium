@@ -25,7 +25,7 @@ var RegexpResponseValuePlaceholder = regexp.MustCompile(
 // The placeholder is used to indicate that the value should be treated as a regular expression.
 var RegexpRequestValuePlaceholder = regexp.MustCompile(
 	fmt.Sprintf(
-		"^\\$\\{(%s):([a-zA-Z0-9_-]+|\\*)\\}$",
+		"^\\$\\{(%s):(.*)\\}$",
 		RegexpValuePlaceholder,
 	),
 )

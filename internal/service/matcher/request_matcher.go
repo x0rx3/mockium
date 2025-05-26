@@ -7,6 +7,7 @@ import (
 	"gomock/internal/service"
 	"io"
 	"net/http"
+	"reflect"
 	"regexp"
 
 	"go.uber.org/zap"
@@ -73,24 +74,28 @@ func (inst *RequestMatcher) precompile(param service.Parameter, source map[strin
 func (inst *RequestMatcher) precompileRegexp(source map[string]any) map[string]any {
 	result := make(map[string]any)
 	for key, value := range source {
-		if str, ok := value.(string); ok {
-			if service.RegexpResponseValuePlaceholder.MatchString(str) {
-				placeholders := service.RegexpResponseValuePlaceholder.FindStringSubmatch(str)
-				switch placeholders[2] {
-				case service.RegexpValuePlaceholder:
-					if re, err := regexp.Compile(placeholders[3]); err == nil {
+		switch v := value.(type) {
+		case string:
+			if service.RegexpRequestValuePlaceholder.MatchString(v) {
+				placeholders := service.RegexpRequestValuePlaceholder.FindStringSubmatch(v)
+				if placeholders[1] == service.RegexpValuePlaceholder {
+					if re, err := regexp.Compile(placeholders[2]); err == nil {
 						result[key] = re
+						continue
 					} else {
-						inst.log.Warn("failed to compile regexp", zap.String("regexp", str))
-						result[key] = str
+						inst.log.Warn("failed to compile regexp", zap.String("regexp", v))
+						result[key] = v
+						continue
 					}
-				default:
-					result[key] = str
 				}
 			}
-			continue
+			result[key] = v
+		case map[string]any:
+			result[key] = inst.precompileRegexp(v)
+		default:
+			result[key] = value
 		}
-		result[key] = value
+
 	}
 	return result
 }
@@ -122,7 +127,7 @@ func (inst *RequestMatcher) matchForm(req *http.Request) bool {
 
 	for key, tValue := range inst.matchRequest.MustFormParameters {
 		actual := req.PostForm.Get(key)
-		if actual != "" || !inst.compare(tValue, actual) {
+		if actual == "" || !inst.compare(tValue, actual) {
 			return false
 		}
 	}
@@ -153,7 +158,13 @@ func (inst *RequestMatcher) matchQuery(req *http.Request) bool {
 
 // matchHeader checks if the request's headers match the template.
 func (inst *RequestMatcher) matchHeader(req *http.Request) bool {
-	return false
+	for key, tValue := range inst.matchRequest.MustHeaders {
+		actual := req.Header.Get(key)
+		if actual == "" || !inst.compare(tValue, actual) {
+			return false
+		}
+	}
+	return true
 }
 
 // matchBody checks if the request's body matches the template.
@@ -205,6 +216,22 @@ func (inst *RequestMatcher) compare(expected, actual any) bool {
 			return inst.compareMaps(exp, aMap)
 		}
 		return false
+	case int, int8, int16, int32, int64:
+		expVal := reflect.ValueOf(exp).Int()
+		switch actVal := actual.(type) {
+		case int, int8, int16, int32, int64:
+			return expVal == reflect.ValueOf(actVal).Int()
+		case float32, float64:
+			return float64(expVal) == reflect.ValueOf(actVal).Float()
+		}
+	case float32, float64:
+		expVal := reflect.ValueOf(exp).Float()
+		switch actVal := actual.(type) {
+		case int, int8, int16, int32, int64:
+			return expVal == float64(reflect.ValueOf(actVal).Int())
+		case float32, float64:
+			return expVal == reflect.ValueOf(actVal).Float()
+		}
 	}
 	return expected == actual
 }
@@ -220,7 +247,7 @@ func (inst *RequestMatcher) compareBody(actual map[string]any) bool {
 }
 
 // compareSlices checks if two slices are deeply equal according to the matcher's comparison rules.
-func (inst *RequestMatcher) compareSlices(expected, actual []interface{}) bool {
+func (inst *RequestMatcher) compareSlices(expected, actual []any) bool {
 	if len(expected) != len(actual) {
 		return false
 	}
@@ -233,7 +260,7 @@ func (inst *RequestMatcher) compareSlices(expected, actual []interface{}) bool {
 }
 
 // compareMaps checks if two maps are deeply equal according to the matcher's comparison rules.
-func (inst *RequestMatcher) compareMaps(expected, actual map[string]interface{}) bool {
+func (inst *RequestMatcher) compareMaps(expected, actual map[string]any) bool {
 	for key, expVal := range expected {
 		actVal, exists := actual[key]
 		if !exists {
