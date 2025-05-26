@@ -27,13 +27,13 @@ type MockResponseProvider struct {
 	prepareFunc func(*http.Request) (*model.SetResponse, error)
 }
 
-func (m *MockResponseProvider) Prepare(req *http.Request) (*model.SetResponse, error) {
+func (m *MockResponseProvider) Build(req *http.Request) (*model.SetResponse, error) {
 	return m.prepareFunc(req)
 }
 
 func TestNewHandler(t *testing.T) {
 	log := zaptest.NewLogger(t)
-	matchers := make(map[transport.RequestMatcher]transport.ResponsePreparer)
+	matchers := make(map[transport.RequestMatcher]transport.ResponseBuilder)
 
 	h := New(log, matchers)
 
@@ -44,7 +44,7 @@ func TestNewHandler(t *testing.T) {
 
 func TestServeHTTP_NotFound(t *testing.T) {
 	log := zaptest.NewLogger(t)
-	matchers := make(map[transport.RequestMatcher]transport.ResponsePreparer)
+	matchers := make(map[transport.RequestMatcher]transport.ResponseBuilder)
 
 	h := New(log, matchers)
 
@@ -71,7 +71,7 @@ func TestServeHTTP_InternalErrorOnPrepare(t *testing.T) {
 		},
 	}
 
-	matchers := map[transport.RequestMatcher]transport.ResponsePreparer{
+	matchers := map[transport.RequestMatcher]transport.ResponseBuilder{
 		matcher: provider,
 	}
 
@@ -105,7 +105,7 @@ func TestServeHTTP_JSONResponse(t *testing.T) {
 		},
 	}
 
-	matchers := map[transport.RequestMatcher]transport.ResponsePreparer{
+	matchers := map[transport.RequestMatcher]transport.ResponseBuilder{
 		matcher: provider,
 	}
 
@@ -145,7 +145,7 @@ func TestServeHTTP_FileResponse(t *testing.T) {
 		},
 	}
 
-	matchers := map[transport.RequestMatcher]transport.ResponsePreparer{
+	matchers := map[transport.RequestMatcher]transport.ResponseBuilder{
 		matcher: provider,
 	}
 
@@ -179,7 +179,7 @@ func TestServeHTTP_Headers(t *testing.T) {
 		},
 	}
 
-	matchers := map[transport.RequestMatcher]transport.ResponsePreparer{
+	matchers := map[transport.RequestMatcher]transport.ResponseBuilder{
 		matcher: provider,
 	}
 
@@ -215,7 +215,7 @@ func TestFindMatches(t *testing.T) {
 		},
 	}
 
-	matchers := map[transport.RequestMatcher]transport.ResponsePreparer{
+	matchers := map[transport.RequestMatcher]transport.ResponseBuilder{
 		matcher1: provider,
 		matcher2: provider,
 	}

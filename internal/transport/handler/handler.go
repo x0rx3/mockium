@@ -13,7 +13,7 @@ import (
 // The matchers are used to determine which response provider to use for a given request.
 // The logger is used for logging errors and other information during request handling.
 // The handler implements the http.Handler interface, allowing it to be used as an HTTP
-func New(log *zap.Logger, mathcers map[transport.RequestMatcher]transport.ResponsePreparer) *Handler {
+func New(log *zap.Logger, mathcers map[transport.RequestMatcher]transport.ResponseBuilder) *Handler {
 	return &Handler{
 		log:      log,
 		matchers: mathcers,
@@ -24,7 +24,7 @@ func New(log *zap.Logger, mathcers map[transport.RequestMatcher]transport.Respon
 // It is responsible for handling HTTP requests and providing responses based on the request matchers and response providers.
 type Handler struct {
 	log      *zap.Logger
-	matchers map[transport.RequestMatcher]transport.ResponsePreparer
+	matchers map[transport.RequestMatcher]transport.ResponseBuilder
 }
 
 // ServeHTTP is the main entry point for handling HTTP requests.
@@ -43,7 +43,7 @@ func (inst *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response, err := resProvider.Prepare(r)
+	response, err := resProvider.Build(r)
 	if err != nil {
 		http.Error(w, "failed prepare response", http.StatusInternalServerError)
 		return
@@ -89,7 +89,7 @@ func (inst *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // findMatches iterates over the request matchers and checks if any of them match the given request.
 // If a match is found, it returns the corresponding response provider.
 // If no match is found, it returns nil.
-func (inst *Handler) findMatches(req *http.Request) transport.ResponsePreparer {
+func (inst *Handler) findMatches(req *http.Request) transport.ResponseBuilder {
 	for reqMatcher, resProvider := range inst.matchers {
 		if reqMatcher.Match(req) {
 			return resProvider

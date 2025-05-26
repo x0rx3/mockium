@@ -3,7 +3,6 @@ package builder
 import (
 	"gomock/internal/model"
 	"gomock/internal/service/matcher"
-	"gomock/internal/service/preparer"
 	"gomock/internal/transport"
 	"gomock/internal/transport/handler"
 	"gomock/internal/transport/route"
@@ -24,8 +23,8 @@ var BuildRoutes Build = func(log *zap.Logger, template *model.Template) []transp
 	var r = make([]transport.Router, 0)
 
 	for _, handle := range template.Handle {
-		reqResM := make(map[transport.RequestMatcher]transport.ResponsePreparer)
-		reqResM[matcher.NewRequestMatcher(log, &handle.MatchRequestTemplate)] = preparer.NewResponsePreparer(handle.SetResponseTemplate)
+		reqResM := make(map[transport.RequestMatcher]transport.ResponseBuilder)
+		reqResM[matcher.NewRequestMatcher(log, &handle.MatchRequestTemplate)] = NewResponseBuilder(handle.SetResponseTemplate)
 		r = append(
 			r,
 			route.New(template.Path, handle.MatchRequestTemplate.MustMethod, handler.New(log, reqResM)),

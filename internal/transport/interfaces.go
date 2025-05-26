@@ -6,8 +6,8 @@ import (
 	"net/http"
 )
 
-type ResponsePreparer interface {
-	Prepare(req *http.Request) (*model.SetResponse, error)
+type ResponseBuilder interface {
+	Build(req *http.Request) (*model.SetResponse, error)
 }
 
 type RequestMatcher interface {

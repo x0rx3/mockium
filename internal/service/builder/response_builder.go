@@ -1,7 +1,8 @@
-package preparer
+package builder
 
 import (
 	"encoding/json"
+	"fmt"
 	"gomock/internal/model"
 	"gomock/internal/service"
 	"io"
@@ -9,25 +10,27 @@ import (
 	"os"
 
 	"github.com/gorilla/mux"
+	"go.uber.org/zap"
 )
 
-// NewResponsePreparer creates a new ResponsePreparator instance with the provided template response.
+// NewResponseBuilder creates a new ResponsePreparator instance with the provided template response.
 // It initializes the preparator with the given template and sets up the response preparation logic.
-func NewResponsePreparer(templResp model.SetResponseTemplate) *ResponsePreparer {
-	return &ResponsePreparer{
+func NewResponseBuilder(templResp model.SetResponseTemplate) *ResponseBuilder {
+	return &ResponseBuilder{
 		templResp: templResp,
 	}
 }
 
-// ResponsePreparer is a struct that implements the ResponseProvider interface.
+// ResponseBuilder is a struct that implements the ResponseProvider interface.
 // It is responsible for preparing the response based on the provided template response.
 // The struct contains the template response and provides methods to prepare the response.
 // It checks for the presence of required headers, status code, and response body.
-type ResponsePreparer struct {
+type ResponseBuilder struct {
+	log       *zap.Logger
 	templResp model.SetResponseTemplate
 }
 
-// Prepare prepares the response based on the provided request and template response.
+// Build prepares the response based on the provided request and template response.
 // It builds the response based on the template and the incoming request.
 // The method can handle different types of response formats, including JSON bodies and files.
 // It checks for the presence of required headers, status code, and response body.
@@ -36,8 +39,8 @@ type ResponsePreparer struct {
 // If the response body is a file, it checks if the file exists and sets the file path in the response.
 // The method also sets the response headers and status code based on the template response.
 // If an error occurs during preparation, it returns the error.
-func (inst *ResponsePreparer) Prepare(req *http.Request) (*model.SetResponse, error) {
-	var response = &model.SetResponse{}
+func (inst *ResponseBuilder) Build(req *http.Request) (*model.SetResponse, error) {
+	response := &model.SetResponse{}
 	if inst.templResp.SetBody != nil {
 		resp, err := inst.build(inst.templResp.SetBody, req)
 		if err != nil {
@@ -63,59 +66,68 @@ func (inst *ResponsePreparer) Prepare(req *http.Request) (*model.SetResponse, er
 // It processes the template response and replaces any placeholders with actual values from the request.
 // The method supports different types of response formats, including JSON bodies and files.
 // It returns the built response and any error that occurred during the process.
-func (inst *ResponsePreparer) build(templResp map[string]any, req *http.Request) (map[string]any, error) {
-	var resp = make(map[string]any)
+func (inst *ResponseBuilder) build(templResp map[string]any, req *http.Request) (map[string]any, error) {
+	if len(templResp) == 0 {
+		return nil, nil
+	}
 
+	response := make(map[string]any, len(templResp))
 	for filedName, fieldValue := range templResp {
 		switch fieldValT := fieldValue.(type) {
 		case string:
 			if service.RegexpResponseValuePlaceholder.MatchString(fieldValT) {
 				placeholders := service.RegexpResponseValuePlaceholder.FindStringSubmatch(fieldValT)
-				if err := inst.compareRegexpField(filedName, resp, placeholders, req); err != nil {
+				if placeholderValue, err := inst.valueByPlacehoders(placeholders, req); err != nil {
 					return nil, err
+				} else {
+					response[filedName] = placeholderValue
 				}
 				continue
 			}
-			resp[filedName] = fieldValT
+			response[filedName] = fieldValT
 		case map[string]any:
 			buildetMap, err := inst.build(fieldValT, req)
 			if err != nil {
 				return nil, err
 			}
-			resp[filedName] = buildetMap
+			response[filedName] = buildetMap
 		default:
-			resp[filedName] = fieldValT
+			response[filedName] = fieldValT
 		}
 	}
 
-	return resp, nil
+	return response, nil
 }
 
-// compareRegexpField compares the placeholders in the template response with the request parameters.
-func (inst *ResponsePreparer) compareRegexpField(key string, res map[string]any, placeholders []string, req *http.Request) error {
+// valueByPlacehoders compares the placeholders in the template response with the request parameters.
+func (inst *ResponseBuilder) valueByPlacehoders(placeholders []string, req *http.Request) (any, error) {
+	if len(placeholders) < 4 {
+		return nil, fmt.Errorf("invalid placeholders")
+	}
+
 	switch placeholders[2] {
 	case string(service.Headers):
-		res[key] = req.Header.Get(placeholders[3])
+		return req.Header.Get(placeholders[3]), nil
 	case string(service.Query):
-		res[key] = req.URL.Query().Get(placeholders[3])
+		return req.URL.Query().Get(placeholders[3]), nil
 	case string(service.Path):
 		vars := mux.Vars(req)
-		res[key] = vars[placeholders[3]]
+		return vars[placeholders[3]], nil
 	case string(service.Form):
-		res[key] = req.FormValue(placeholders[3])
+		return req.FormValue(placeholders[3]), nil
 	case string(service.Body):
 		body, err := io.ReadAll(req.Body)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		mBody := make(map[string]any)
 
 		if err := json.Unmarshal(body, &mBody); err != nil {
-			return err
+			return nil, err
 		}
 
-		res[key] = mBody[placeholders[2]]
+		return mBody[placeholders[3]], nil
 	}
-	return nil
+	return nil, fmt.Errorf("unxpected placeholder: %s", placeholders[2])
 }
