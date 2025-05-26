@@ -1,11 +1,11 @@
 package builder
 
 import (
-	"gomock/internal/model"
-	"gomock/internal/service/matcher"
-	"gomock/internal/transport"
-	"gomock/internal/transport/handler"
-	"gomock/internal/transport/route"
+	"mockium/internal/model"
+	"mockium/internal/service/matcher"
+	"mockium/internal/transport"
+	"mockium/internal/transport/handler"
+	"mockium/internal/transport/route"
 
 	"go.uber.org/zap"
 )

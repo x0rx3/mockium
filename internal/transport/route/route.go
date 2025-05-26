@@ -1,7 +1,7 @@
 package route
 
 import (
-	"gomock/internal/transport/method"
+	"mockium/internal/transport/method"
 	"net/http"
 )
 

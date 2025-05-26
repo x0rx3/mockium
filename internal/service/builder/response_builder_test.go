@@ -3,8 +3,8 @@ package builder
 import (
 	"bytes"
 	"encoding/json"
-	"gomock/internal/model"
 	"io"
+	"mockium/internal/model"
 	"net/http"
 	"net/http/httptest"
 	"os"

@@ -1,8 +1,8 @@
 package server
 
 import (
-	"gomock/internal/transport"
-	"gomock/internal/transport/method"
+	"mockium/internal/transport"
+	"mockium/internal/transport/method"
 	"net/http"
 	"net/http/httptest"
 	"testing"

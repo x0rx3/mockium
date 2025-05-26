@@ -3,9 +3,9 @@ package matcher
 import (
 	"context"
 	"encoding/json"
-	"gomock/internal/logging"
-	"gomock/internal/model"
-	"gomock/internal/service"
+	"mockium/internal/logging"
+	"mockium/internal/model"
+	"mockium/internal/service"
 	"net/http"
 	"net/http/httptest"
 	"net/url"

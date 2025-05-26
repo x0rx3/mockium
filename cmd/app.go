@@ -2,10 +2,10 @@ package main
 
 import (
 	"flag"
-	"gomock/internal/logging"
-	"gomock/internal/service/builder"
-	"gomock/internal/transport"
-	"gomock/internal/transport/server"
+	"mockium/internal/logging"
+	"mockium/internal/service/builder"
+	"mockium/internal/transport"
+	"mockium/internal/transport/server"
 
 	"go.uber.org/zap"
 )

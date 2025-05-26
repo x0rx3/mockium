@@ -1,6 +1,6 @@
 package model
 
-import "gomock/internal/transport/method"
+import "mockium/internal/transport/method"
 
 type MatchRequestTemplate struct {
 	MustMethod          method.Method  `yaml:"MustMethod" json:"MustMethod"`

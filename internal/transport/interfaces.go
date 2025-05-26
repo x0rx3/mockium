@@ -1,8 +1,8 @@
 package transport
 
 import (
-	"gomock/internal/model"
-	"gomock/internal/transport/method"
+	"mockium/internal/model"
+	"mockium/internal/transport/method"
 	"net/http"
 )
 

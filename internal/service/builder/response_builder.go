@@ -3,9 +3,9 @@ package builder
 import (
 	"encoding/json"
 	"fmt"
-	"gomock/internal/model"
-	"gomock/internal/service"
 	"io"
+	"mockium/internal/model"
+	"mockium/internal/service"
 	"net/http"
 	"os"
 

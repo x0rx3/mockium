@@ -2,7 +2,7 @@ package handler
 
 import (
 	"encoding/json"
-	"gomock/internal/transport"
+	"mockium/internal/transport"
 	"net/http"
 
 	"go.uber.org/zap"

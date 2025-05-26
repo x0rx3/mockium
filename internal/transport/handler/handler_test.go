@@ -3,8 +3,8 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
-	"gomock/internal/model"
-	"gomock/internal/transport"
+	"mockium/internal/model"
+	"mockium/internal/transport"
 	"net/http"
 	"net/http/httptest"
 	"os"

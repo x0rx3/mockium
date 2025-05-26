@@ -1,7 +1,7 @@
 package server
 
 import (
-	"gomock/internal/transport"
+	"mockium/internal/transport"
 	"net/http"
 
 	"github.com/gorilla/mux"

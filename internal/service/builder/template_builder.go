@@ -3,7 +3,7 @@ package builder
 import (
 	"encoding/json"
 	"fmt"
-	"gomock/internal/model"
+	"mockium/internal/model"
 	"os"
 	"regexp"
 

@@ -1,7 +1,7 @@
 package builder
 
 import (
-	"gomock/internal/model"
+	"mockium/internal/model"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
