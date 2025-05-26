@@ -40,9 +40,9 @@ Once running, the service listens for HTTP requests, matches them to templates, 
 ### Placeholder Syntax
 - `${...}` - any value
 - `${regexp:...}` - value that matches the regular expression, where `...` is custom regexp
-- `${req.queryParams:...}` - value from query parameters, where `...` is name of parameter from query  
-- `${req.pathParams:...}` - value from path parameters, where `...` is name of parameter from path
-- `${req.formParams:...}` - value from form parameters, where `...` is name of parameter from form
+- `${req.query:...}` - value from query parameters, where `...` is name of parameter from query  
+- `${req.path:...}` - value from path parameters, where `...` is name of parameter from path
+- `${req.form:...}` - value from form parameters, where `...` is name of parameter from form
 - `${req.headers:...}` - value from headers, where `...` is name of header
 - `${req.body:...}` - value from body, where `...` is name of parameter from body
 
@@ -79,7 +79,7 @@ Once running, the service listens for HTTP requests, matches them to templates, 
             "SetResponse": {
                 "SetStatus": 200,
                 "SetBody": {
-                    "user_uuid": "${req.queryParams:user_uuid}",
+                    "user_uuid": "${req.query:user_uuid}",
                     "username": "x0rx3"
                 }
             }
