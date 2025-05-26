@@ -72,7 +72,11 @@ func (inst *RequestMatcher) precompile(param service.Parameter, source map[strin
 // precompileRegexp compiles all regex patterns in the provided source map.
 // Returns a new map with string values replaced by compiled regex patterns where applicable.
 func (inst *RequestMatcher) precompileRegexp(source map[string]any) map[string]any {
-	result := make(map[string]any)
+	if len(source) == 0 {
+		return nil
+	}
+
+	result := make(map[string]any, len(source))
 	for key, value := range source {
 		switch v := value.(type) {
 		case string:
@@ -120,7 +124,7 @@ func (inst *RequestMatcher) addMatchFunc(param service.Parameter) {
 func (inst *RequestMatcher) matchForm(req *http.Request) bool {
 	if req.PostForm == nil {
 		if err := req.ParseForm(); err != nil {
-			inst.log.Debug("failed to parse form", zap.Error(err))
+			inst.log.Error("parse form", zap.Error(err))
 			return false
 		}
 	}
@@ -251,6 +255,7 @@ func (inst *RequestMatcher) compareSlices(expected, actual []any) bool {
 	if len(expected) != len(actual) {
 		return false
 	}
+
 	for i := range expected {
 		if !inst.compare(expected[i], actual[i]) {
 			return false
@@ -263,10 +268,7 @@ func (inst *RequestMatcher) compareSlices(expected, actual []any) bool {
 func (inst *RequestMatcher) compareMaps(expected, actual map[string]any) bool {
 	for key, expVal := range expected {
 		actVal, exists := actual[key]
-		if !exists {
-			return false
-		}
-		if !inst.compare(expVal, actVal) {
+		if !exists || !inst.compare(expVal, actVal) {
 			return false
 		}
 	}
