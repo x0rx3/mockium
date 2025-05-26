@@ -12,7 +12,6 @@ type MatchRequestTemplate struct {
 }
 
 type MatchRequest struct {
-	MustMethod          method.Method
 	MustPathParameters  map[string]any
 	MustQueryParameters map[string]any
 	MustFormParameters  map[string]any
