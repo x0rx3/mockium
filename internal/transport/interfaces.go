@@ -2,7 +2,6 @@ package transport
 
 import (
 	"mockium/internal/model"
-	"mockium/internal/transport/method"
 	"net/http"
 )
 
@@ -16,6 +15,6 @@ type RequestMatcher interface {
 
 type Router interface {
 	Path() string
-	Method() method.Method
-	Handler() http.Handler
+	Handlers() map[model.Method]http.Handler
+	Handler(model.Method) http.Handler
 }

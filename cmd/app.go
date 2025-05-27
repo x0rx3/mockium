@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	templateDir := flag.String("template", "templates", "location directory with template file, default './templates'")
+	templateDir := flag.String("template", "../templates", "location directory with template file, default './templates'")
 	address := flag.String("address", ":5000", "address with port, default ':5000'")
 	flag.Parse()
 
@@ -23,12 +23,12 @@ func main() {
 		return
 	}
 
-	r := make([]transport.Router, 0)
+	routes := make([]transport.Router, 0)
 	for _, template := range templates {
-		r = append(r, builder.BuildRoutes(log, &template)...)
+		routes = append(routes, builder.BuildRoutes(log, &template))
 	}
 
-	if err := server.New(log, r...).Start(*address); err != nil {
+	if err := server.New(log, routes...).Start(*address); err != nil {
 		log.Error("start server", zap.Error(err))
 		return
 	}

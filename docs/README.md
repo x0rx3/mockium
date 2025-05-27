@@ -3,12 +3,15 @@
 - `cmd/` — application entry point  
 - `internal/` — core business logic:
   - `logging/` — initialization and configuration of logging
-  - `model/` — data structures for use cases, requests, responses, and templates
+  - `model/` — data structures for use cases, requests, responses, method, and templates
   - `service/` — request handling, routing, and template rendering
-    - `serivice/builder` - route builder, template builder
+    - `serivice/builder` - route, template, response builder
+    - `service/constants` - constants for common usage of service
     - `service/matcher` - request matcher
-    - `service/preparer` - response preparer
   - `transport/` — HTTP server, handlers, and interfaces
+    - `transport/handler` - request handler 
+    - `transport/route` - route represents an HTTP route configuration
+    -  `transport/server` - server represents an HTTP server that manages multiple routers.
 - `vendor/` — external dependencies
 
 ## Testing
@@ -37,6 +40,9 @@ Once running, the service listens for HTTP requests, matches them to templates, 
 - `DELETE` - HTTP method
 - `PATCH` - HTTP method
 
+If you do not specify the field, the default value will be method `GET`.
+
+
 ### Placeholder Syntax
 - `${...}` - any value
 - `${regexp:...}` - value that matches the regular expression, where `...` is custom regexp
@@ -55,50 +61,68 @@ Once running, the service listens for HTTP requests, matches them to templates, 
 - `MustBody` - body that must be present in the request
 
 ### Response Preparation
-- `SetStatus` - HTTP status code to return
+- `SetStatus` - HTTP status code to return, if you do not specify the field, the default value will be `200`.
 - `SetHeaders` - headers to return in the response
 - `SetBody` - body to return in the response
 - `SetFile` - file to return in the response
 
-### Example Template
+### #1 Example Template:
 
 ```json
 {
-    "Path": "/users",
+    "Path": "/login",
     "Handle": [
         {
             "MatchRequest": {
-                "MustMethod": "GET",
-                "MustQueryParameters": {
-                    "sort": "name"
-                },
-                "MustHeaders": {
-                    "Host": "127.0.0.1"
-                }
-            },
-            "SetResponse": {
-                "SetStatus": 200,
-                "SetBody": {
-                    "user_uuid": "${req.query:user_uuid}",
-                    "username": "x0rx3"
-                }
-            }
-        },
-        {
-            "MatchRequest": {
                 "MustMethod": "POST",
-                "MustQueryParameters": {
-                   "download": "" 
-                },
-                "MustHeaders": {
-                    "Host": "192.168.0.1"
+                "MustBody": {
+                    "username": "test",
+                    "password": "password"
                 }
             },
             "SetResponse": {
                 "SetStatus": 200,
-                "SetFile": "/path/to/file"
+                "SetHeaders": {
+                    "SetCookie": "X-Csrf-Token=cookie"
+                },
+                "SetBody": {
+                    "authorized": true
+                    "username": ${req.body:username}
+                }
             }
         },
+        ...
     ]
 }
+```
+### #1 Example response:
+```bash
+curl -i http://127.0.0.1:5000/login -X POST -d '{"username":"test","password":"password"}'
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+Setcookie: X-Csrf-Token=cookie
+Date: Tue, 27 May 2025 14:50:25 GMT
+Content-Length: 19
+
+{"authorized":true, "username":"test"}
+```
+
+### #2 Example Template:
+
+```json
+{
+    "Path": "/",
+    "Handle": [
+        {}
+    ]
+}
+```
+### #2 Example response:
+```bash
+curl -i http://127.0.0.1:5000/
+
+HTTP/1.1 200 OK
+Date: Tue, 27 May 2025 14:54:35 GMT
+Content-Length: 0
 ```

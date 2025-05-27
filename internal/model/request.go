@@ -1,9 +1,7 @@
 package model
 
-import "mockium/internal/transport/method"
-
 type MatchRequestTemplate struct {
-	MustMethod          method.Method  `yaml:"MustMethod" json:"MustMethod"`
+	MustMethod          Method         `yaml:"MustMethod" json:"MustMethod"`
 	MustPathParameters  map[string]any `yaml:"MustPathParameters" json:"MustPathParameters"`
 	MustQueryParameters map[string]any `yaml:"MustQueryParameters" json:"MustQueryParameters"`
 	MustFormParameters  map[string]any `yaml:"MustFormParameters" json:"MustFormParameters"`

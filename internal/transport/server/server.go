@@ -8,8 +8,14 @@ import (
 	"go.uber.org/zap"
 )
 
-// New creates a new Server instance with the given logger and routes.
-// It initializes the server with the provided routes and sets up the logger.
+// New creates a new Server instance with the specified logger and routers.
+//
+// Parameters:
+//   - log: Logger instance for logging server operations
+//   - routes: Variadic list of routers to be registered with the server
+//
+// Returns:
+//   - Pointer to a newly initialized Server instance
 func New(log *zap.Logger, routes ...transport.Router) *Server {
 	return &Server{
 		log:    log,
@@ -18,32 +24,66 @@ func New(log *zap.Logger, routes ...transport.Router) *Server {
 	}
 }
 
-// Server is a simple HTTP server that uses the gorilla/mux router.
-// It is designed to be used with the transport package to handle HTTP requests.
-// It is not intended to be used as a standalone server.
+// Server represents an HTTP server that manages multiple routers.
+// It encapsulates:
+// - A logger for recording server operations
+// - The underlying http.Server instance
+// - A collection of registered routers
 type Server struct {
-	log    *zap.Logger
-	server *http.Server
-	routes []transport.Router
+	log    *zap.Logger        // Logger for server operations
+	server *http.Server       // Underlying HTTP server
+	routes []transport.Router // Collection of registered routers
 }
 
-// Start starts the HTTP server on the specified address.
-// The server will listen on the specified address and handle incoming requests using the registered routes.
-// It sets up the router and registers the routes with their corresponding handlers.
-// It also logs the added handlers and starts listening for incoming requests.
-// If an error occurs during startup, it returns the error.
+// Start initializes and runs the HTTP server on the specified address.
+// It performs the following operations:
+// 1. Configures the server address
+// 2. Creates a new router using gorilla/mux
+// 3. Registers all handlers from the configured routes
+// 4. Starts listening for incoming requests
+//
+// Parameters:
+//   - address: Network address to listen on (e.g., ":8080")
+//
+// Returns:
+//   - error: Any error that occurs during server startup or operation
+//
+// Notes:
+// - Defaults to GET method if no method is specified in the route
+// - Logs each registered handler for debugging purposes
 func (inst *Server) Start(address string) error {
 	inst.server.Addr = address
 
+	// Initialize the request router
 	r := mux.NewRouter()
 
-	for _, hr := range inst.routes {
-		r.HandleFunc(hr.Path(), hr.Handler().ServeHTTP).Methods(string(hr.Method()))
-		inst.log.Info("added handler:", zap.String("path", hr.Path()), zap.String("method", string(hr.Method())))
+	// Register all routes and their handlers
+	method := "GET"
+	for _, route := range inst.routes {
+		for m, hr := range route.Handlers() {
+			// Use GET as default method if not specified
+			if string(m) == "" {
+				method = "GET"
+			} else {
+				method = string(m)
+			}
+
+			// Register the handler with the router
+			r.HandleFunc(route.Path(), hr.ServeHTTP).Methods(method)
+
+			// Log the registered handler
+			inst.log.Info("added handler:",
+				zap.String("path", route.Path()),
+				zap.String("method", method))
+		}
 	}
+
+	// Set the configured router as the server handler
 	inst.server.Handler = r
 
-	inst.log.Info("start listen and serve", zap.String("address", address))
+	// Start the server
+	inst.log.Info("start listen and serve",
+		zap.String("address", address))
 
 	return inst.server.ListenAndServe()
 }

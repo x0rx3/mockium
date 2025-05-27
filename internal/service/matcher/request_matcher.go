@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"io"
 	"mockium/internal/model"
-	"mockium/internal/service"
+	"mockium/internal/service/constants"
 	"net/http"
 	"reflect"
 	"regexp"
@@ -33,11 +33,11 @@ func NewRequestMatcher(log *zap.Logger, templateRequest *model.MatchRequestTempl
 	}
 
 	matchRequest := model.MatchRequest{
-		MustFormParameters:  requestMatcher.precompile(service.Form, templateRequest.MustFormParameters),
-		MustPathParameters:  requestMatcher.precompile(service.Path, templateRequest.MustPathParameters),
-		MustQueryParameters: requestMatcher.precompile(service.Query, templateRequest.MustQueryParameters),
-		MustBody:            requestMatcher.precompile(service.Body, templateRequest.MustBody),
-		MustHeaders:         requestMatcher.precompile(service.Headers, templateRequest.MustHeaders),
+		MustFormParameters:  requestMatcher.precompile(constants.Form, templateRequest.MustFormParameters),
+		MustPathParameters:  requestMatcher.precompile(constants.Path, templateRequest.MustPathParameters),
+		MustQueryParameters: requestMatcher.precompile(constants.Query, templateRequest.MustQueryParameters),
+		MustBody:            requestMatcher.precompile(constants.Body, templateRequest.MustBody),
+		MustHeaders:         requestMatcher.precompile(constants.Headers, templateRequest.MustHeaders),
 	}
 
 	requestMatcher.matchRequest = matchRequest
@@ -60,7 +60,7 @@ func (inst *RequestMatcher) Match(req *http.Request) bool {
 // precompile processes matching rules for a specific parameter type.
 // It adds the corresponding match function to the matcher and compiles any regex patterns.
 // Returns the processed matching rules with compiled regex patterns.
-func (inst *RequestMatcher) precompile(param service.Parameter, source map[string]any) map[string]any {
+func (inst *RequestMatcher) precompile(param constants.Parameter, source map[string]any) map[string]any {
 	if len(source) == 0 {
 		return nil
 	}
@@ -80,9 +80,9 @@ func (inst *RequestMatcher) precompileRegexp(source map[string]any) map[string]a
 	for key, value := range source {
 		switch v := value.(type) {
 		case string:
-			if service.RegexpRequestValuePlaceholder.MatchString(v) {
-				placeholders := service.RegexpRequestValuePlaceholder.FindStringSubmatch(v)
-				if placeholders[1] == service.RegexpValuePlaceholder {
+			if constants.RegexpRequestValuePlaceholder.MatchString(v) {
+				placeholders := constants.RegexpRequestValuePlaceholder.FindStringSubmatch(v)
+				if placeholders[1] == constants.RegexpValuePlaceholder {
 					if re, err := regexp.Compile(placeholders[2]); err == nil {
 						result[key] = re
 						continue
@@ -105,17 +105,17 @@ func (inst *RequestMatcher) precompileRegexp(source map[string]any) map[string]a
 }
 
 // addMatchFunc registers the appropriate matching function based on parameter type.
-func (inst *RequestMatcher) addMatchFunc(param service.Parameter) {
+func (inst *RequestMatcher) addMatchFunc(param constants.Parameter) {
 	switch param {
-	case service.Form:
+	case constants.Form:
 		inst.matchFuncs = append(inst.matchFuncs, inst.matchForm)
-	case service.Path:
+	case constants.Path:
 		inst.matchFuncs = append(inst.matchFuncs, inst.matchPath)
-	case service.Query:
+	case constants.Query:
 		inst.matchFuncs = append(inst.matchFuncs, inst.matchQuery)
-	case service.Body:
+	case constants.Body:
 		inst.matchFuncs = append(inst.matchFuncs, inst.matchBody)
-	case service.Headers:
+	case constants.Headers:
 		inst.matchFuncs = append(inst.matchFuncs, inst.matchHeader)
 	}
 }
@@ -187,6 +187,7 @@ func (inst *RequestMatcher) matchBody(req *http.Request) bool {
 
 	mBody := make(map[string]any)
 	if err := json.Unmarshal(body, &mBody); err != nil {
+		inst.log.Error("parse body", zap.Error(err), zap.String("url", req.URL.Path))
 		return false
 	}
 
@@ -206,7 +207,7 @@ func (inst *RequestMatcher) compare(expected, actual any) bool {
 		}
 		return false
 	case string:
-		if exp == service.AnyValuePlaceholder {
+		if exp == constants.AnyValuePlaceholder {
 			return true
 		}
 		return exp == actual

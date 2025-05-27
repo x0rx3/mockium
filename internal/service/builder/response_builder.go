@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 	"mockium/internal/model"
-	"mockium/internal/service"
+	"mockium/internal/service/constants"
 	"net/http"
 	"os"
 
@@ -75,8 +75,8 @@ func (inst *ResponseBuilder) build(templResp map[string]any, req *http.Request) 
 	for filedName, fieldValue := range templResp {
 		switch fieldValT := fieldValue.(type) {
 		case string:
-			if service.RegexpResponseValuePlaceholder.MatchString(fieldValT) {
-				placeholders := service.RegexpResponseValuePlaceholder.FindStringSubmatch(fieldValT)
+			if constants.RegexpResponseValuePlaceholder.MatchString(fieldValT) {
+				placeholders := constants.RegexpResponseValuePlaceholder.FindStringSubmatch(fieldValT)
 				if placeholderValue, err := inst.valueByPlacehoders(placeholders, req); err != nil {
 					return nil, err
 				} else {
@@ -106,16 +106,16 @@ func (inst *ResponseBuilder) valueByPlacehoders(placeholders []string, req *http
 	}
 
 	switch placeholders[2] {
-	case string(service.Headers):
+	case string(constants.Headers):
 		return req.Header.Get(placeholders[3]), nil
-	case string(service.Query):
+	case string(constants.Query):
 		return req.URL.Query().Get(placeholders[3]), nil
-	case string(service.Path):
+	case string(constants.Path):
 		vars := mux.Vars(req)
 		return vars[placeholders[3]], nil
-	case string(service.Form):
+	case string(constants.Form):
 		return req.FormValue(placeholders[3]), nil
-	case string(service.Body):
+	case string(constants.Body):
 		body, err := io.ReadAll(req.Body)
 		if err != nil {
 			return nil, err

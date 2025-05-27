@@ -18,6 +18,25 @@ func TestTemplateBuilder_ErrorUnmarshal(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func TestTemplateBuilder_SuccessEmptyMethod(t *testing.T) {
+	builder := NewTemplateBuilder(zap.NewNop())
+
+	template := model.Template{
+		Path: "/user",
+		Handle: []model.HandleTemplate{
+			model.HandleTemplate{
+				MatchRequestTemplate: model.MatchRequestTemplate{},
+				SetResponseTemplate: model.SetResponseTemplate{
+					SetStatus: 200,
+				},
+			},
+		},
+	}
+
+	err := builder.validate([]model.Template{template})
+	assert.NoError(t, err)
+}
+
 func TestTemplateBuilder_ErrorNotFoundDir(t *testing.T) {
 	_, err := NewTemplateBuilder(zap.NewNop()).Build("error_path")
 	assert.Error(t, err)

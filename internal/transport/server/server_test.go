@@ -1,8 +1,8 @@
 package server
 
 import (
+	"mockium/internal/model"
 	"mockium/internal/transport"
-	"mockium/internal/transport/method"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -14,14 +14,13 @@ import (
 )
 
 type MockRouter struct {
-	path    string
-	method  method.Method
-	handler http.Handler
+	path     string
+	handlers map[model.Method]http.Handler
 }
 
-func (m *MockRouter) Path() string          { return m.path }
-func (m *MockRouter) Method() method.Method { return m.method }
-func (m *MockRouter) Handler() http.Handler { return m.handler }
+func (m *MockRouter) Path() string                            { return m.path }
+func (m *MockRouter) Handler(mt model.Method) http.Handler    { return m.handlers[mt] }
+func (m *MockRouter) Handlers() map[model.Method]http.Handler { return m.handlers }
 
 func TestNewServer(t *testing.T) {
 	log := zaptest.NewLogger(t)
@@ -43,9 +42,8 @@ func TestStartServer_Success(t *testing.T) {
 	})
 	routes := []transport.Router{
 		&MockRouter{
-			path:    "/test",
-			method:  http.MethodGet,
-			handler: testHandler,
+			path:     "/test",
+			handlers: map[model.Method]http.Handler{http.MethodGet: testHandler},
 		},
 	}
 
@@ -58,7 +56,9 @@ func TestStartServer_Success(t *testing.T) {
 
 	router := mux.NewRouter()
 	for _, hr := range routes {
-		router.HandleFunc(hr.Path(), hr.Handler().ServeHTTP).Methods(string(hr.Method()))
+		for mth, handle := range hr.Handlers() {
+			router.HandleFunc(hr.Path(), handle.ServeHTTP).Methods(string(mth))
+		}
 	}
 
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)

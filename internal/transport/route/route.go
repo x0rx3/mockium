@@ -1,38 +1,55 @@
 package route
 
 import (
-	"mockium/internal/transport/method"
+	"mockium/internal/model"
 	"net/http"
 )
 
-// Route represents an HTTP route with a path, method, and handler.
-// It implements the Router interface, which defines the methods for getting
-// the path, method, and handler of the route.
-// The Route struct is used to define a specific route in the HTTP server.
-// It contains the path, method, and handler for the route.
-// The path is the URL pattern that the route matches, the method is the HTTP method
-// (e.g., GET, POST) that the route responds to, and the handler is the function
-// that handles the request when the route is matched.
-type Route struct {
-	path    string
-	method  method.Method
-	handler http.Handler
-}
-
-// New creates a new Route instance with the specified path, method, and handler.
-func New(path string, method method.Method, handler http.Handler) *Route {
+// New creates a new Route instance with the specified path and method handlers.
+//
+// Parameters:
+//   - path: URL path pattern for the route (e.g., "/users/{id}")
+//   - handlers: Map of HTTP methods to their corresponding handlers
+//
+// Returns:
+//   - Pointer to a new Route instance
+func New(path string, handlers map[model.Method]http.Handler) *Route {
 	return &Route{
-		path:    path,
-		method:  method,
-		handler: handler,
+		path:     path,
+		handlers: handlers,
 	}
 }
 
-// Path returns the path of the route.
+// Route represents an HTTP route configuration.
+// It encapsulates:
+// - The path pattern to match against incoming requests
+// - A collection of handlers for different HTTP methods
+//
+// The struct implements the Router interface, providing access to:
+// - The route path via Path()
+// - All handlers via Handlers()
+// - Specific handler by method via Handler()
+type Route struct {
+	path     string                        // URL path pattern
+	handlers map[model.Method]http.Handler // Method-to-handler mappings
+}
+
+// Path returns the route's URL path pattern.
+// This is used by the router to match incoming requests.
 func (inst *Route) Path() string { return inst.path }
 
-// Method returns the HTTP method of the route.
-func (inst *Route) Method() method.Method { return inst.method }
+// Handlers returns all HTTP handlers configured for this route,
+// indexed by HTTP method.
+//
+// Returns:
+//   - Map of HTTP methods to their handlers
+func (inst *Route) Handlers() map[model.Method]http.Handler { return inst.handlers }
 
-// Handler returns the HTTP handler for the route.
-func (inst *Route) Handler() http.Handler { return inst.handler }
+// Handler returns the HTTP handler for a specific method.
+//
+// Parameters:
+//   - method: HTTP method to get handler for
+//
+// Returns:
+//   - Handler for the specified method, or nil if not found
+func (inst *Route) Handler(method model.Method) http.Handler { return inst.handlers[method] }

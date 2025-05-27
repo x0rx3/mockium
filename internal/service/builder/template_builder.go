@@ -73,10 +73,29 @@ func (inst *TemplateBuilder) Build(path string) ([]model.Template, error) {
 func (inst *TemplateBuilder) validate(templates []model.Template) error {
 	for _, template := range templates {
 		for _, handle := range template.Handle {
+
+			if handle.MatchRequestTemplate.MustMethod == "" {
+				handle.MatchRequestTemplate.MustMethod = model.DEFAULTMETHOD
+			} else {
+
+				if err := inst.checkMethod(handle.MatchRequestTemplate.MustMethod); err != nil {
+					return err
+				}
+			}
+
 			if handle.SetResponseTemplate.SetBody != nil && handle.SetResponseTemplate.SetFile != "" {
 				return fmt.Errorf("cannot use parameter 'SetBody' with 'SetFile'")
 			}
 		}
 	}
 	return nil
+}
+
+func (inst *TemplateBuilder) checkMethod(metod model.Method) error {
+	switch metod {
+	case model.GET, model.POST, model.DELETE, model.PATCH, model.PUT:
+		return nil
+	default:
+		return fmt.Errorf("unxpected method")
+	}
 }

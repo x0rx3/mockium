@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"mockium/internal/logging"
 	"mockium/internal/model"
-	"mockium/internal/service"
+	"mockium/internal/service/constants"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -224,7 +224,7 @@ func TestRequestMatcher_compare(t *testing.T) {
 		},
 		{
 			name:     "Any value placeholder",
-			expected: service.AnyValuePlaceholder,
+			expected: constants.AnyValuePlaceholder,
 			actual:   "anything",
 			want:     true,
 		},
