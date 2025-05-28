@@ -10,23 +10,31 @@ import (
 	"go.uber.org/zap"
 )
 
-// NewTemplateBuilder creates a new TemplateBuilder instance.
-// It initializes the builder with the provided logger and sets up the template building logic.
+// TemplateBuilder is responsible for loading and validating template definitions
+// from JSON files in a specified directory.
+type TemplateBuilder struct {
+	log *zap.Logger // Logger for validation and loading diagnostics (currently unused).
+}
+
+// NewTemplateBuilder creates a new instance of TemplateBuilder.
+//
+// Parameters:
+//   - log: zap logger used for debug or error logging.
+//
+// Returns a pointer to a TemplateBuilder.
 func NewTemplateBuilder(log *zap.Logger) *TemplateBuilder {
 	return &TemplateBuilder{
 		log: log,
 	}
 }
 
-// TemplateBuilder is a struct that implements the TemplateBuilder interface.
-// It is responsible for building templates based on the provided path.
-// The struct contains the logger and provides methods to build templates.
-// It reads JSON files from the specified path and unmarshals them into HandlerTamplate structs.
-// The struct also validates the templates to ensure that they meet the required criteria.
-type TemplateBuilder struct {
-	log *zap.Logger
-}
-
+// Build reads all JSON template files from the given directory path, unmarshals them,
+// and validates the resulting templates.
+//
+// Parameters:
+//   - path: directory path where template JSON files are located.
+//
+// Returns a slice of model.Template and an error if reading or validation fails.
 func (inst *TemplateBuilder) Build(path string) ([]model.Template, error) {
 	dir, err := os.ReadDir(path)
 	if err != nil {
@@ -65,11 +73,15 @@ func (inst *TemplateBuilder) Build(path string) ([]model.Template, error) {
 	return templates, nil
 }
 
-// validate checks if the provided templates meet the required criteria.
-// It ensures that the templates do not contain conflicting parameters.
-// For example, it checks if both SetBody and SetFile are used in the same template.
-// If any conflicts are found, it returns an error.
-// If the templates are valid, it returns nil.
+// validate performs structural validation of templates including:
+//   - setting default HTTP method if not specified
+//   - ensuring only one of SetBody or SetFile is used in a response
+//   - checking for valid HTTP methods
+//
+// Parameters:
+//   - templates: the slice of templates to validate.
+//
+// Returns an error if validation fails.
 func (inst *TemplateBuilder) validate(templates []model.Template) error {
 	for _, template := range templates {
 		for _, handle := range template.Handle {
@@ -77,7 +89,6 @@ func (inst *TemplateBuilder) validate(templates []model.Template) error {
 			if handle.MatchRequestTemplate.MustMethod == "" {
 				handle.MatchRequestTemplate.MustMethod = model.DEFAULTMETHOD
 			} else {
-
 				if err := inst.checkMethod(handle.MatchRequestTemplate.MustMethod); err != nil {
 					return err
 				}
@@ -91,11 +102,17 @@ func (inst *TemplateBuilder) validate(templates []model.Template) error {
 	return nil
 }
 
+// checkMethod verifies that the provided HTTP method is supported.
+//
+// Parameters:
+//   - metod: the HTTP method to validate.
+//
+// Returns an error if the method is not recognized.
 func (inst *TemplateBuilder) checkMethod(metod model.Method) error {
 	switch metod {
 	case model.GET, model.POST, model.DELETE, model.PATCH, model.PUT:
 		return nil
 	default:
-		return fmt.Errorf("unxpected method")
+		return fmt.Errorf("unexpected method")
 	}
 }
