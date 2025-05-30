@@ -1,7 +1,11 @@
 package handler
 
 import (
+	"bytes"
 	"encoding/json"
+	"io"
+	"mockium/internal/model"
+	"mockium/internal/service"
 	"mockium/internal/transport"
 	"net/http"
 
@@ -12,8 +16,9 @@ import (
 // based on a set of request matchers and generates responses
 // using associated response builders.
 type Handler struct {
-	log      *zap.Logger
-	matchers map[transport.RequestMatcher]transport.ResponseBuilder
+	log           *zap.Logger
+	matchers      map[transport.RequestMatcher]transport.ResponseBuilder
+	processLogger service.ProcessLogger
 }
 
 // New creates a new instance of Handler.
@@ -25,10 +30,11 @@ type Handler struct {
 // Returns:
 //
 //	A pointer to an initialized Handler.
-func New(log *zap.Logger, mathcers map[transport.RequestMatcher]transport.ResponseBuilder) *Handler {
+func New(log *zap.Logger, proceLogger service.ProcessLogger, mathcers map[transport.RequestMatcher]transport.ResponseBuilder) *Handler {
 	return &Handler{
-		log:      log,
-		matchers: mathcers,
+		log:           log,
+		matchers:      mathcers,
+		processLogger: proceLogger,
 	}
 }
 
@@ -43,21 +49,36 @@ func New(log *zap.Logger, mathcers map[transport.RequestMatcher]transport.Respon
 //   - w: the HTTP response writer.
 //   - r: the HTTP request.
 func (inst *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	inst.log.Info("request", zap.String("path", r.URL.Path))
+	logReq := inst.buildLogRequest(r)
 
 	resProvider := inst.findMatches(r)
 	if resProvider == nil {
+		logReq.Response.SetStatus = http.StatusNotFound
+		inst.processLogger.Log(logReq)
+		inst.log.Info("Serve HTTP", zap.Any("Request", logReq), zap.String("Response", "StatusNotFound"))
+
 		w.WriteHeader(http.StatusNotFound)
+		http.Error(w, "not found", http.StatusNotFound)
 		return
 	}
 
 	response, err := resProvider.Build(r)
 	if err != nil {
+		logReq.Response.SetStatus = http.StatusInternalServerError
+		inst.processLogger.Log(logReq)
+		inst.log.Info("Serve HTTP", zap.Any("Request", logReq), zap.String("Response", "StatusInternalServerError"))
+
+		w.WriteHeader(http.StatusInternalServerError)
 		http.Error(w, "failed prepare response", http.StatusInternalServerError)
 		return
 	}
 
 	if response == nil {
+		logReq.Response.SetStatus = http.StatusInternalServerError
+		inst.processLogger.Log(logReq)
+		inst.log.Info("Serve HTTP", zap.Any("Request", logReq), zap.String("Response", "StatusInternalServerError"))
+
+		w.WriteHeader(http.StatusInternalServerError)
 		http.Error(w, "nil response after prepare", http.StatusInternalServerError)
 		return
 	}
@@ -71,18 +92,31 @@ func (inst *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	status := http.StatusOK
 	if response.SetStatus != 0 {
 		status = response.SetStatus
+	} else {
+		response.SetStatus = status
 	}
 
 	switch {
 	case response.SetFile != nil:
+		logReq.Response = *response
+		inst.processLogger.Log(logReq)
+		inst.log.Info("Serve HTTP", zap.Any("Request", logReq), zap.Any("Response", response))
+
 		w.Header().Set("Content-Disposition", "attachment; filename="+response.SetFile.Name())
 		w.WriteHeader(status)
 		http.ServeFile(w, r, response.SetFile.Name())
 		return
 	case response.SetBody != nil:
+		logReq.Response = *response
+		inst.processLogger.Log(logReq)
+		inst.log.Info("Serve HTTP", zap.Any("Request", logReq), zap.Any("Response", response))
+
 		bodyByte, err := json.Marshal(response.SetBody)
 		if err != nil {
-			inst.log.Error("error marshal body", zap.Error(err))
+			inst.log.Info("Serve HTTP",
+				zap.Any("Request", logReq),
+				zap.String("Response", "StatusInternalServerError"),
+			)
 			http.Error(w, "failed prepare response", http.StatusInternalServerError)
 			return
 		}
@@ -92,6 +126,10 @@ func (inst *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Write(bodyByte)
 		return
 	}
+
+	logReq.Response = *response
+	inst.processLogger.Log(logReq)
+	inst.log.Info("Serve HTTP", zap.Any("Request", logReq), zap.Any("Response", response))
 
 	w.WriteHeader(status)
 }
@@ -112,4 +150,31 @@ func (inst *Handler) findMatches(req *http.Request) transport.ResponseBuilder {
 		}
 	}
 	return nil
+}
+
+func (inst *Handler) buildLogRequest(r *http.Request) *model.ProcessLoggingFileds {
+	logReq := &model.LogginRequest{
+		Headers: make(map[string]any),
+	}
+
+	logReq.Url = r.URL.String()
+	logReq.RemoteAddr = r.RemoteAddr
+	logReq.Method = r.Method
+
+	for name, values := range r.Header {
+		logReq.Headers[name] = values
+	}
+
+	if r.Body != nil && r.Body != http.NoBody {
+		bodyBytes, _ := io.ReadAll(r.Body)
+		r.Body.Close()
+		r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+		logReq.Body = string(bodyBytes)
+	}
+
+	inst.log.Info("", zap.Any("Received Request", logReq))
+
+	return &model.ProcessLoggingFileds{
+		Request: logReq,
+	}
 }

@@ -31,11 +31,15 @@ func (m *MockResponseProvider) Build(req *http.Request) (*model.SetResponse, err
 	return m.prepareFunc(req)
 }
 
+type MockProcessLogger struct{}
+
+func (ml *MockProcessLogger) Log(*model.ProcessLoggingFileds) {}
+
 func TestNewHandler(t *testing.T) {
 	log := zaptest.NewLogger(t)
 	matchers := make(map[transport.RequestMatcher]transport.ResponseBuilder)
 
-	h := New(log, matchers)
+	h := New(log, &MockProcessLogger{}, matchers)
 
 	assert.NotNil(t, h)
 	assert.Equal(t, log, h.log)
@@ -46,7 +50,7 @@ func TestServeHTTP_NotFound(t *testing.T) {
 	log := zaptest.NewLogger(t)
 	matchers := make(map[transport.RequestMatcher]transport.ResponseBuilder)
 
-	h := New(log, matchers)
+	h := New(log, &MockProcessLogger{}, matchers)
 
 	req := httptest.NewRequest("GET", "/not-found", nil)
 	rec := httptest.NewRecorder()
@@ -75,7 +79,7 @@ func TestServeHTTP_InternalErrorOnPrepare(t *testing.T) {
 		matcher: provider,
 	}
 
-	h := New(log, matchers)
+	h := New(log, &MockProcessLogger{}, matchers)
 
 	req := httptest.NewRequest("GET", "/error", nil)
 	rec := httptest.NewRecorder()
@@ -109,7 +113,7 @@ func TestServeHTTP_JSONResponse(t *testing.T) {
 		matcher: provider,
 	}
 
-	h := New(log, matchers)
+	h := New(log, &MockProcessLogger{}, matchers)
 
 	req := httptest.NewRequest("GET", "/json", nil)
 	rec := httptest.NewRecorder()
@@ -149,7 +153,7 @@ func TestServeHTTP_FileResponse(t *testing.T) {
 		matcher: provider,
 	}
 
-	h := New(log, matchers)
+	h := New(log, &MockProcessLogger{}, matchers)
 
 	req := httptest.NewRequest("GET", "/file", nil)
 	rec := httptest.NewRecorder()
@@ -183,7 +187,7 @@ func TestServeHTTP_Headers(t *testing.T) {
 		matcher: provider,
 	}
 
-	h := New(log, matchers)
+	h := New(log, &MockProcessLogger{}, matchers)
 
 	req := httptest.NewRequest("GET", "/headers", nil)
 	rec := httptest.NewRecorder()
@@ -220,7 +224,7 @@ func TestFindMatches(t *testing.T) {
 		matcher2: provider,
 	}
 
-	h := New(log, matchers)
+	h := New(log, &MockProcessLogger{}, matchers)
 
 	t.Run("match first", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/first", nil)
