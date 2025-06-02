@@ -8,6 +8,7 @@ import (
 	"mockium/internal/service"
 	"mockium/internal/transport"
 	"net/http"
+	"time"
 
 	"go.uber.org/zap"
 )
@@ -57,7 +58,6 @@ func (inst *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		inst.processLogger.Log(logReq)
 		inst.log.Info("Serve HTTP", zap.Any("Request", logReq), zap.String("Response", "StatusNotFound"))
 
-		w.WriteHeader(http.StatusNotFound)
 		http.Error(w, "not found", http.StatusNotFound)
 		return
 	}
@@ -68,7 +68,6 @@ func (inst *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		inst.processLogger.Log(logReq)
 		inst.log.Info("Serve HTTP", zap.Any("Request", logReq), zap.String("Response", "StatusInternalServerError"))
 
-		w.WriteHeader(http.StatusInternalServerError)
 		http.Error(w, "failed prepare response", http.StatusInternalServerError)
 		return
 	}
@@ -78,7 +77,6 @@ func (inst *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		inst.processLogger.Log(logReq)
 		inst.log.Info("Serve HTTP", zap.Any("Request", logReq), zap.String("Response", "StatusInternalServerError"))
 
-		w.WriteHeader(http.StatusInternalServerError)
 		http.Error(w, "nil response after prepare", http.StatusInternalServerError)
 		return
 	}
@@ -175,6 +173,7 @@ func (inst *Handler) buildLogRequest(r *http.Request) *model.ProcessLoggingFiled
 	inst.log.Info("", zap.Any("Received Request", logReq))
 
 	return &model.ProcessLoggingFileds{
+		Time:    time.Now(),
 		Request: logReq,
 	}
 }

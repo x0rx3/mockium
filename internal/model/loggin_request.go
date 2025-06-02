@@ -1,6 +1,9 @@
 package model
 
+import "time"
+
 type ProcessLoggingFileds struct {
+	Time     time.Time      `json:"time"`
 	Request  *LogginRequest `json:"request"`
 	Response SetResponse    `json:"response"`
 }
