@@ -22,12 +22,14 @@ go test ./...
 ```
 Tests check the core functions of the service and its stability.
 
+## Program parameters
 
-## Usage Example
+- `template` - location directory with template file, default './templates'
+- `address` - address with port, default ':5000'
+- `log-level` - usage log level, default 'info'
+- `log-dir` - log direcrectory, default 'log'
 
-Once running, the service listens for HTTP requests, matches them to templates, and returns the corresponding responses.
-
-## Syntax 
+## Template Syntax
 
 ### Path Parameters
 - `:param_name` - path parameter that can be matched with any value
@@ -66,6 +68,11 @@ If you do not specify the field, the default value will be method `GET`.
 
 If you do not specify the `Content-Type` title, when indicating the wait for the body's body, the comparison by the heading will not be carried out, 
 And also the processing will take place according to the `Content-Type` from the request, if the type of content of comparing the request with the template will not be indicated in the request and the template, since it will not be clear in what form to parse data.
+
+
+## Usage Example
+
+Once running, the service listens for HTTP requests, matches them to templates, and returns the corresponding responses.
 
 ### #1 Example Template:
 
