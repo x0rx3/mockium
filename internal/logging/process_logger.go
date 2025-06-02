@@ -43,7 +43,7 @@ func NewProcessLogger(log *zap.Logger, dirPath, baseName string, maxSizeMB int64
 }
 
 func (inst *ProcessLogger) Log(logFields *model.ProcessLoggingFileds) {
-	p, err := json.Marshal(logFields)
+	p, err := json.MarshalIndent(logFields, "", "	")
 	if err != nil {
 		inst.log.Error("marshal", zap.Error(err))
 		return
