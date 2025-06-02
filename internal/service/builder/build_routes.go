@@ -2,6 +2,7 @@ package builder
 
 import (
 	"mockium/internal/model"
+	"mockium/internal/service"
 	"mockium/internal/service/matcher"
 	"mockium/internal/transport"
 	"mockium/internal/transport/handler"
@@ -14,7 +15,7 @@ import (
 // Build is a function type that constructs a router from a template.
 // It takes a logger for logging purposes and a template defining the routing rules,
 // and returns an implementation of transport.Router.
-type Build func(log *zap.Logger, template *model.Template) transport.Router
+type Build func(log *zap.Logger, procLogger service.ProcessLogger, template *model.Template) transport.Router
 
 // BuildRoutes is the default implementation of the Build function.
 // It creates a router with request matchers and response builders based on the provided template.
@@ -31,7 +32,7 @@ type Build func(log *zap.Logger, template *model.Template) transport.Router
 //
 // Returns:
 //   - Configured router implementing transport.Router interface
-var BuildRoutes Build = func(log *zap.Logger, template *model.Template) transport.Router {
+var BuildRoutes Build = func(log *zap.Logger, procLogger service.ProcessLogger, template *model.Template) transport.Router {
 	// matchersMap is a two-level map:
 	// 1st level: HTTP method (e.g., GET, POST)
 	// 2nd level: Map of request matchers to their response builders
@@ -54,7 +55,7 @@ var BuildRoutes Build = func(log *zap.Logger, template *model.Template) transpor
 
 	// Create handlers for each method using the configured matchers
 	for mth, mtch := range matchersMap {
-		handlers[mth] = handler.New(log, mtch)
+		handlers[mth] = handler.New(log, procLogger, mtch)
 	}
 
 	// Create and return a new router with the configured path and handlers

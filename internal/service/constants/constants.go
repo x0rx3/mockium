@@ -54,3 +54,49 @@ const (
 	Form    Parameter = "form"
 	Body    Parameter = "body"
 )
+
+const (
+	// Text / HTML
+	ContentTypeTextPlain      = "text/plain"
+	ContentTypeTextHTML       = "text/html"
+	ContentTypeTextCSS        = "text/css"
+	ContentTypeTextCSV        = "text/csv"
+	ContentTypeTextXML        = "text/xml"
+	ContentTypeTextJavaScript = "text/javascript"
+
+	// JSON / XML
+	ContentTypeApplicationJSON        = "application/json"
+	ContentTypeApplicationXML         = "application/xml"
+	ContentTypeApplicationProblemJSON = "application/problem+json"
+	ContentTypeApplicationProblemXML  = "application/problem+xml"
+
+	// Forms
+	ContentTypeFormURLEncoded = "application/x-www-form-urlencoded"
+	ContentTypeFormData       = "multipart/form-data"
+
+	// Files
+	ContentTypeOctetStream = "application/octet-stream"
+	ContentTypePDF         = "application/pdf"
+	ContentTypeZIP         = "application/zip"
+	ContentTypeGZIP        = "application/gzip"
+	ContentTypeTar         = "application/x-tar"
+
+	// Images
+	ContentTypeImageJPEG = "image/jpeg"
+	ContentTypeImagePNG  = "image/png"
+	ContentTypeImageGIF  = "image/gif"
+	ContentTypeImageSVG  = "image/svg+xml"
+	ContentTypeImageWebP = "image/webp"
+
+	// Audio / Video
+	ContentTypeAudioMPEG = "audio/mpeg"
+	ContentTypeAudioOGG  = "audio/ogg"
+	ContentTypeVideoMP4  = "video/mp4"
+	ContentTypeVideoWEBM = "video/webm"
+
+	// Stylesheets
+	ContentTypeFontWOFF  = "font/woff"
+	ContentTypeFontWOFF2 = "font/woff2"
+	ContentTypeFontTTF   = "font/ttf"
+	ContentTypeFontOTF   = "font/otf"
+)

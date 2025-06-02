@@ -255,5 +255,5 @@ func TestValueByPlaceholders_InvalidPlaceholder(t *testing.T) {
 
 	_, err := builder.valueByPlacehoders([]string{"", "", "invalid", "param"}, req)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "unxpected placeholder")
+	assert.Contains(t, err.Error(), "unexpected placeholder: invalid")
 }

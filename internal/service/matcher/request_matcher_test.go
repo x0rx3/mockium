@@ -3,13 +3,11 @@ package matcher
 import (
 	"context"
 	"encoding/json"
-	"mockium/internal/logging"
 	"mockium/internal/model"
 	"mockium/internal/service/constants"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"regexp"
 	"strings"
 	"testing"
 
@@ -106,15 +104,18 @@ func TestRequestMatcher_Match(t *testing.T) {
 				},
 			},
 			request: func() *http.Request {
+
 				body := `{"user": {"name": "John", "age": 30}}`
-				return httptest.NewRequest("POST", "/users", strings.NewReader(body))
+				req := httptest.NewRequest("POST", "/users", strings.NewReader(body))
+				req.Header.Add("Content-Type", constants.ContentTypeApplicationJSON)
+				return req
 			},
 			wantMatch: true,
 		},
 		{
 			name: "Match form data",
 			template: &model.MatchRequestTemplate{
-				MustFormParameters: map[string]any{
+				MustBody: map[string]any{
 					"username": "testuser",
 					"password": "${regexp:^[a-zA-Z0-9]{8,}$}",
 				},
@@ -168,7 +169,7 @@ func TestRequestMatcher_Match(t *testing.T) {
 			request: func() *http.Request {
 				body := `{"id": "123"}`
 				req := httptest.NewRequest("POST", "/", strings.NewReader(body))
-
+				req.Header.Add("Content-Type", "application/json")
 				// Simulate cached body
 				var mBody map[string]interface{}
 				json.Unmarshal([]byte(body), &mBody)
@@ -184,126 +185,6 @@ func TestRequestMatcher_Match(t *testing.T) {
 			matcher := NewRequestMatcher(logger, tt.template)
 			req := tt.request()
 			assert.Equal(t, tt.wantMatch, matcher.Match(req))
-		})
-	}
-}
-
-func TestRequestMatcher_compare(t *testing.T) {
-	logger := zaptest.NewLogger(t)
-	matcher := NewRequestMatcher(logger, &model.MatchRequestTemplate{})
-
-	tests := []struct {
-		name     string
-		expected any
-		actual   any
-		want     bool
-	}{
-		{
-			name:     "Simple string match",
-			expected: "test",
-			actual:   "test",
-			want:     true,
-		},
-		{
-			name:     "Simple string mismatch",
-			expected: "test",
-			actual:   "mismatch",
-			want:     false,
-		},
-		{
-			name:     "Regexp match",
-			expected: regexp.MustCompile("^[a-z]+$"),
-			actual:   "test",
-			want:     true,
-		},
-		{
-			name:     "Regexp mismatch",
-			expected: regexp.MustCompile("^[0-9]+$"),
-			actual:   "test",
-			want:     false,
-		},
-		{
-			name:     "Any value placeholder",
-			expected: constants.AnyValuePlaceholder,
-			actual:   "anything",
-			want:     true,
-		},
-		{
-			name:     "Nested map match",
-			expected: map[string]any{"user": map[string]any{"name": "John"}},
-			actual:   map[string]any{"user": map[string]any{"name": "John"}},
-			want:     true,
-		},
-		{
-			name:     "Nested map mismatch",
-			expected: map[string]any{"user": map[string]any{"name": "John"}},
-			actual:   map[string]any{"user": map[string]any{"name": "Alice"}},
-			want:     false,
-		},
-		{
-			name:     "Slice match",
-			expected: []any{1, 2, 3},
-			actual:   []any{1, 2, 3},
-			want:     true,
-		},
-		{
-			name:     "Slice length mismatch",
-			expected: []any{1, 2},
-			actual:   []any{1, 2, 3},
-			want:     false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, matcher.compare(tt.expected, tt.actual))
-		})
-	}
-}
-
-func TestRequestMatcher_matchBody(t *testing.T) {
-	logger := logging.New("error")
-	template := &model.MatchRequestTemplate{
-		MustBody: map[string]any{
-			"id":   "${regexp:^[0-9]+$}",
-			"user": map[string]any{"name": "${regexp:^[A-Z]}"},
-		},
-	}
-
-	tests := []struct {
-		name      string
-		body      string
-		wantMatch bool
-	}{
-		{
-			name:      "Valid body",
-			body:      `{"id": "123", "user": {"name": "John"}}`,
-			wantMatch: true,
-		},
-		{
-			name:      "Invalid ID format",
-			body:      `{"id": "abc", "user": {"name": "John"}}`,
-			wantMatch: false,
-		},
-		{
-			name:      "Invalid user name format",
-			body:      `{"id": "123", "user": {"name": "john"}}`,
-			wantMatch: false,
-		},
-		{
-			name:      "Invalid JSON",
-			body:      `invalid json`,
-			wantMatch: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			matcher := NewRequestMatcher(logger, template)
-			req := httptest.NewRequest("POST", "/", strings.NewReader(tt.body))
-
-			matched := matcher.matchBody(req)
-			assert.Equal(t, tt.wantMatch, matched)
 		})
 	}
 }

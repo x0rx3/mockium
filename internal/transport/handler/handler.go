@@ -1,56 +1,86 @@
 package handler
 
 import (
+	"bytes"
 	"encoding/json"
+	"io"
+	"mockium/internal/model"
+	"mockium/internal/service"
 	"mockium/internal/transport"
 	"net/http"
 
 	"go.uber.org/zap"
 )
 
-// New creates a new Handler instance with the provided logger and request matchers.
-// It initializes the handler with the given matchers and sets up the logger.
-// The matchers are used to determine which response provider to use for a given request.
-// The logger is used for logging errors and other information during request handling.
-// The handler implements the http.Handler interface, allowing it to be used as an HTTP
-func New(log *zap.Logger, mathcers map[transport.RequestMatcher]transport.ResponseBuilder) *Handler {
+// Handler is an HTTP handler that routes incoming requests
+// based on a set of request matchers and generates responses
+// using associated response builders.
+type Handler struct {
+	log           *zap.Logger
+	matchers      map[transport.RequestMatcher]transport.ResponseBuilder
+	processLogger service.ProcessLogger
+}
+
+// New creates a new instance of Handler.
+//
+// Parameters:
+//   - log: a zap.Logger instance for logging request/response activity.
+//   - matchers: a map of RequestMatcher to corresponding ResponseBuilder.
+//
+// Returns:
+//
+//	A pointer to an initialized Handler.
+func New(log *zap.Logger, proceLogger service.ProcessLogger, mathcers map[transport.RequestMatcher]transport.ResponseBuilder) *Handler {
 	return &Handler{
-		log:      log,
-		matchers: mathcers,
+		log:           log,
+		matchers:      mathcers,
+		processLogger: proceLogger,
 	}
 }
 
-// Handler is a struct that implements the http.Handler interface.
-// It is responsible for handling HTTP requests and providing responses based on the request matchers and response providers.
-type Handler struct {
-	log      *zap.Logger
-	matchers map[transport.RequestMatcher]transport.ResponseBuilder
-}
-
-// ServeHTTP is the main entry point for handling HTTP requests.
-// It implements the http.Handler interface and is called when an HTTP request is received.
-// It uses the request matchers to find the appropriate response provider for the request.
-// If a matching response provider is found, it prepares the response and writes it to the http.ResponseWriter.
-// If no matching response provider is found, it returns a 404 Not Found status.
-// If an error occurs during response preparation, it returns a 500 Internal Server Error status.
-// The response can include headers, a status code, a file to be served, or a JSON body.
-// The response is written to the http.ResponseWriter, and the appropriate status code is set.
-// The method is designed to be used in conjunction with the transport package to handle HTTP requests and responses.
+// ServeHTTP handles incoming HTTP requests by matching them
+// against configured request matchers. If a match is found,
+// the corresponding response is built and sent.
+//
+// If no match is found, it responds with 404 Not Found.
+// If an error occurs during response building, it responds with 500 Internal Server Error.
+//
+// Parameters:
+//   - w: the HTTP response writer.
+//   - r: the HTTP request.
 func (inst *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	logReq := inst.buildLogRequest(r)
+
 	resProvider := inst.findMatches(r)
 	if resProvider == nil {
+		logReq.Response.SetStatus = http.StatusNotFound
+		inst.processLogger.Log(logReq)
+		inst.log.Info("Serve HTTP", zap.Any("Request", logReq), zap.String("Response", "StatusNotFound"))
+
 		w.WriteHeader(http.StatusNotFound)
+		http.Error(w, "not found", http.StatusNotFound)
 		return
 	}
 
 	response, err := resProvider.Build(r)
 	if err != nil {
+		logReq.Response.SetStatus = http.StatusInternalServerError
+		inst.processLogger.Log(logReq)
+		inst.log.Info("Serve HTTP", zap.Any("Request", logReq), zap.String("Response", "StatusInternalServerError"))
+
+		w.WriteHeader(http.StatusInternalServerError)
 		http.Error(w, "failed prepare response", http.StatusInternalServerError)
 		return
 	}
 
 	if response == nil {
+		logReq.Response.SetStatus = http.StatusInternalServerError
+		inst.processLogger.Log(logReq)
+		inst.log.Info("Serve HTTP", zap.Any("Request", logReq), zap.String("Response", "StatusInternalServerError"))
+
+		w.WriteHeader(http.StatusInternalServerError)
 		http.Error(w, "nil response after prepare", http.StatusInternalServerError)
+		return
 	}
 
 	if response.SetHeaders != nil {
@@ -62,19 +92,33 @@ func (inst *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	status := http.StatusOK
 	if response.SetStatus != 0 {
 		status = response.SetStatus
+	} else {
+		response.SetStatus = status
 	}
 
 	switch {
 	case response.SetFile != nil:
+		logReq.Response = *response
+		inst.processLogger.Log(logReq)
+		inst.log.Info("Serve HTTP", zap.Any("Request", logReq), zap.Any("Response", response))
+
 		w.Header().Set("Content-Disposition", "attachment; filename="+response.SetFile.Name())
 		w.WriteHeader(status)
 		http.ServeFile(w, r, response.SetFile.Name())
 		return
 	case response.SetBody != nil:
+		logReq.Response = *response
+		inst.processLogger.Log(logReq)
+		inst.log.Info("Serve HTTP", zap.Any("Request", logReq), zap.Any("Response", response))
+
 		bodyByte, err := json.Marshal(response.SetBody)
 		if err != nil {
-			inst.log.Error("error marshal body", zap.Error(err))
+			inst.log.Info("Serve HTTP",
+				zap.Any("Request", logReq),
+				zap.String("Response", "StatusInternalServerError"),
+			)
 			http.Error(w, "failed prepare response", http.StatusInternalServerError)
+			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -83,12 +127,22 @@ func (inst *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	logReq.Response = *response
+	inst.processLogger.Log(logReq)
+	inst.log.Info("Serve HTTP", zap.Any("Request", logReq), zap.Any("Response", response))
+
 	w.WriteHeader(status)
 }
 
-// findMatches iterates over the request matchers and checks if any of them match the given request.
-// If a match is found, it returns the corresponding response provider.
-// If no match is found, it returns nil.
+// findMatches finds the first matching response builder for the incoming request
+// by iterating over the registered request matchers.
+//
+// Parameters:
+//   - req: the incoming HTTP request.
+//
+// Returns:
+//
+//	The first matching ResponseBuilder, or nil if no match is found.
 func (inst *Handler) findMatches(req *http.Request) transport.ResponseBuilder {
 	for reqMatcher, resProvider := range inst.matchers {
 		if reqMatcher.Match(req) {
@@ -96,4 +150,31 @@ func (inst *Handler) findMatches(req *http.Request) transport.ResponseBuilder {
 		}
 	}
 	return nil
+}
+
+func (inst *Handler) buildLogRequest(r *http.Request) *model.ProcessLoggingFileds {
+	logReq := &model.LogginRequest{
+		Headers: make(map[string]any),
+	}
+
+	logReq.Url = r.URL.String()
+	logReq.RemoteAddr = r.RemoteAddr
+	logReq.Method = r.Method
+
+	for name, values := range r.Header {
+		logReq.Headers[name] = values
+	}
+
+	if r.Body != nil && r.Body != http.NoBody {
+		bodyBytes, _ := io.ReadAll(r.Body)
+		r.Body.Close()
+		r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+		logReq.Body = string(bodyBytes)
+	}
+
+	inst.log.Info("", zap.Any("Received Request", logReq))
+
+	return &model.ProcessLoggingFileds{
+		Request: logReq,
+	}
 }

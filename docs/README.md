@@ -42,7 +42,6 @@ Once running, the service listens for HTTP requests, matches them to templates, 
 
 If you do not specify the field, the default value will be method `GET`.
 
-
 ### Placeholder Syntax
 - `${...}` - any value
 - `${regexp:...}` - value that matches the regular expression, where `...` is custom regexp
@@ -56,7 +55,6 @@ If you do not specify the field, the default value will be method `GET`.
 - `MustMethod` - method of handled case, is required field
 - `MustPathParameters` - path parameters that must be present in the request
 - `MustQueryParameters` - query parameters that must be present in the request
-- `MustFormParameters` - form parameters that must be present in the request
 - `MustHeaders` - headers that must be present in the request
 - `MustBody` - body that must be present in the request
 
@@ -65,6 +63,9 @@ If you do not specify the field, the default value will be method `GET`.
 - `SetHeaders` - headers to return in the response
 - `SetBody` - body to return in the response
 - `SetFile` - file to return in the response
+
+If you do not specify the `Content-Type` title, when indicating the wait for the body's body, the comparison by the heading will not be carried out, 
+And also the processing will take place according to the `Content-Type` from the request, if the type of content of comparing the request with the template will not be indicated in the request and the template, since it will not be clear in what form to parse data.
 
 ### #1 Example Template:
 
@@ -101,7 +102,7 @@ curl -i http://127.0.0.1:5000/login -X POST -d '{"username":"test","password":"p
 
 HTTP/1.1 200 OK
 Content-Type: application/json
-Setcookie: X-Csrf-Token=cookie
+SetСookie: X-Csrf-Token=cookie
 Date: Tue, 27 May 2025 14:50:25 GMT
 Content-Length: 19
 
