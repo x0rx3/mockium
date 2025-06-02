@@ -18,4 +18,4 @@ COPY --from=builder /app/mockium /app/mockium
 EXPOSE 5000
 
 ENTRYPOINT ["/app/mockium"]
-CMD ["-template", "templates"]
+CMD ["-template", "templates", "-log-dir", "log"]
