@@ -1,6 +1,9 @@
 package logging
 
 import (
+	"fmt"
+	"os"
+
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -10,6 +13,10 @@ import (
 // The log level can be set to "debug", "info", "warn", or "error".
 // The logger is configured to output to stderr and does not include caller or stacktrace information.
 func NewZapLogger(logLevel, logDir string) (*zap.Logger, error) {
+	if err := os.MkdirAll(logDir, 0755); err != nil {
+		return nil, fmt.Errorf("failed to create log directory: %w", err)
+	}
+
 	var lv zapcore.Level
 	switch logLevel {
 	case "debug":
