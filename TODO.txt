@@ -1,0 +1,107 @@
+- Добавить в TemplateBuilder валидацию параметра SetResponse
+- Переделать отправку файла, добавить получение данных из файла в form-data
+- довести до ума передачу файла
+- доделать тесты на проверку корректности отправки файла
+- продумать как сделать Cookie slice or once valid
+- Добавить RouteFactory & ServerManager, для единного создания route и менеджмента сервисов
+Release: 
+
+Изменен формат внутреннего представления файла, для SetResponse
+
+<project-root>/
+├── cmd/
+│   ├── my-gateway/          # Главная точка входа
+│   │   └── main.go          # (Читает конфиг, инициализирует и запускает всё)
+│   └── ...                  # Другие CLI-утилиты (например, для миграций)
+├── internal/
+│   ├── core/                # ЧИСТОЕ ЯДРО (Без импортов net/http, google.golang.org/grpc)
+│   │   ├── model/           # Сущности предметной области
+│   │   │   ├── request.go   # Request interface{}
+│   │   │   ├── response.go  # SetResponse, Template
+│   │   │   └── ...
+│   │   ├── service/         # Интерфейсы бизнес-логики
+│   │   │   └── service.go   # type Service[T Request] interface { ... }
+│   │   ├── matcher/         # Интерфейсы для сопоставления
+│   │   │   └── matcher.go   # type Matcher[T Request] interface { Match(req T) bool }
+│   │   ├── validator/       # Интерфейсы для валидации
+│   │   │   └── validator.go
+│   │   └── defs/            # Константы, ошибки (errors.go)
+│   │       └── errors.go
+│   ├── service/             # РЕАЛИЗАЦИИ ДЛЯ ЯДРА (зависят от core)
+│   │   ├── httpservice/     # Реализация Service[HTTPRequest]
+│   │   │   └── service.go
+│   │   ├── grpcservice/     # Реализация Service[GRPCRequest]
+│   │   │   └── service.go
+│   │   ├── httpmatcher/     # Реализации Matcher для HTTP (body, header, path)
+│   │   ├── grpcmatcher/     # Реализации Matcher для gRPC
+│   │   ├── httpvalidator/   # Валидация для HTTP (например, с помощью go-playground/validator)
+│   │   └── grpcvalidator/   # Валидация для gRPC
+│   └── gateway/             # АДАПТЕРЫ (зависят от core и service)
+│       ├── httpgw/          # HTTP handler-ы
+│       │   ├── handler.go   # Конвертирует http.Request -> HTTPRequest, вызывает Service
+│       │   ├── request.go   # type HTTPRequest struct { ... } (реализует core.Request)
+│       │   ├── router.go    # HTTP роутер (chi, gorilla/mux, stdlib)
+│       │   └── server.go    # HTTP server
+│       ├── grpcgw/          # gRPC handler-ы
+│       │   ├── handler.go
+│       │   ├── request.go   # type GRPCRequest struct { ... }
+│       │   ├── server.go
+│       │   └── ...          # .pb.go файлы лучше вынести в отдельный пакет или корень
+│       └── manager/         # Менеджер для запуска нескольких серверов
+│           └── server.go
+├── pkg/                     # (ОПЦИОНАЛЬНО) Публично доступные вспомогательные пакеты
+│   └── httputil/            # Например, утилиты для работы с HTTP, которые могут использовать другие модули
+├── api/                     # API-дефинишены
+│   ├── http/                # OpenAPI/Swagger спецификации
+│   └── grpc/                .proto файлы
+├── configs/                 # Конфигурационные файлы
+├── deployments/             # Dockerfile, k8s манифесты
+└── go.mod
+
+
+┌───────────────────────────────┐
+│           cmd/                │
+│  (main.go, CLI)               │
+└─────────────┬─────────────────┘
+              │
+              ▼
+┌───────────────────────────────┐
+│       internal/gateway/       │
+│ ┌─────────────┐ ┌───────────┐│
+│ │ httpgw/     │ │ grpcgw/   ││
+│ │ handler.go  │ │ handler.go││
+│ │ server.go   │ │ server.go ││
+│ │ request.go  │ │ request.go││
+│ │ router.go   │ │           ││
+│ └─────────────┘ └───────────┘│
+│        ▲                 ▲    │
+│        │                 │    │
+│ ┌─────────────┐ ┌────────────┐│
+│ │ manager/    │ │ basegw/    ││
+│ │ server.go   │ │ router.go  ││
+│ └─────────────┘ └────────────┘│
+└─────────────┬─────────────────┘
+              │
+              ▼
+┌───────────────────────────────┐
+│      internal/service/        │
+│ ┌─────────────┐ ┌───────────┐│
+│ │ httpservice │ │ grpcservice││
+│ │ service.go  │ │ service.go ││
+│ ├─────────────┤ ├───────────┤│
+│ │ httpmatcher │ │ grpcmatcher││
+│ │ validators  │ │ validators ││
+│ └─────────────┘ └───────────┘│
+└─────────────┬─────────────────┘
+              │
+              ▼
+┌───────────────────────────────┐
+│         internal/core/        │
+│ ┌─────────────┐ ┌───────────┐│
+│ │ model/      │ │ service/  ││
+│ │ matcher/    │ │ validator/││
+│ │ defs/       │ │           ││
+│ └─────────────┘ └───────────┘│
+│ (чистое ядро, протокольно-   │
+│  независимое, только интерфейсы) │
+└───────────────────────────────┘

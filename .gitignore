@@ -1,3 +1,4 @@
 cmd/templates
 cmd/log
+cmd/testing
 .vscode

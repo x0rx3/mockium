@@ -1,0 +1,23 @@
+package grpcbld
+
+import (
+	"mockium/internal/gateway/grpcgw"
+	"mockium/pkg/core"
+	"mockium/pkg/core/model"
+)
+
+func NewServerBuilder(
+	config *core.ServerConfig,
+) core.ServerBuilder {
+	return &serverBuilder{
+		config: config,
+	}
+}
+
+type serverBuilder struct {
+	config *core.ServerConfig
+}
+
+func (inst *serverBuilder) Build(logger core.Logger, templs []model.Template[[]model.Handle]) core.Server {
+	return grpcgw.NewServer(logger, inst.config.IP+":"+string(rune(inst.config.Port)), nil)
+}
