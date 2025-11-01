@@ -1,6 +1,5 @@
 cmd/templates
 cmd/logs
-cmd/__debug__*
-cmd/testing
+__debug_*
 cmd/config.yaml
 .vscode
