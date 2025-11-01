@@ -1,22 +1,22 @@
 package io
 
 import (
-	"mockium/pkg/core"
+	"mockium/pkg/ports"
 	"os"
 
 	"github.com/stretchr/testify/assert/yaml"
 )
 
-var LoadConfig = func(path string) *core.Config {
+var LoadConfig = func(path string) (*ports.Config, error) {
 	yamlFile, err := os.ReadFile(path)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
-	config := &core.Config{}
+	config := &ports.Config{}
 	if err := yaml.Unmarshal(yamlFile, config); err != nil {
-		panic(err)
+		return nil, err
 	}
 
-	return config
+	return config, nil
 }

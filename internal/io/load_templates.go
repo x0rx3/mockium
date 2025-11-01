@@ -3,7 +3,7 @@ package io
 import (
 	"encoding/json"
 	"fmt"
-	"mockium/pkg/core/model"
+	"mockium/pkg/model"
 	"os"
 	"regexp"
 )
